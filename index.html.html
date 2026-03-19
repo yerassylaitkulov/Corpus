@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Knowledge Corpus</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Dancing+Script:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f6f4ef;
+  --surface: #fff;
+  --border: #ddd9d0;
+  --border-light: #e8e4dc;
+  --text: #1a1916;
+  --text-secondary: #6b6760;
+  --text-tertiary: #9e9b95;
+  --accent: #2d4a3e;
+  --accent-light: #e8f0ec;
+  --accent-mid: #4a7c68;
+  --danger: #8b2c2c;
+  --success: #2d6a4f;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --toolbar-bg: #f0ede8;
+  --toolbar-border: #d6d2c9;
+}
+
+html { font-size: 16px; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--accent); color: #fff;
+  padding: 0 2rem; height: 50px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 200;
+}
+.topbar-brand { font-family: 'Lora', serif; font-size: 17px; font-weight: 500; color: #fff; }
+.topbar-brand span { font-weight: 400; font-style: italic; opacity: 0.6; font-size: 14px; margin-left: 8px; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-stats { font-size: 12px; opacity: 0.5; font-family: 'DM Mono', monospace; }
+.save-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: background 0.3s; }
+.save-dot.saving { background: #f0c040; }
+.save-dot.saved  { background: #6fcf97; }
+
+/* ── LAYOUT ── */
+.layout { display: grid; grid-template-columns: 340px 1fr; min-height: calc(100vh - 50px); }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--surface); border-right: 1px solid var(--border);
+  position: sticky; top: 50px; height: calc(100vh - 50px);
+  overflow-y: auto; display: flex; flex-direction: column;
+}
+
+.sidebar-inner { padding: 1.5rem 1.5rem; flex: 1; display: flex; flex-direction: column; gap: 0; }
+
+.sidebar-title {
+  font-family: 'Lora', serif; font-size: 11px; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-tertiary); margin-bottom: 1rem;
+}
+
+.form-group { margin-bottom: 0.75rem; }
+.form-label {
+  display: block; font-size: 10px; font-weight: 600;
+  color: var(--text-secondary); margin-bottom: 4px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+input[type=text] {
+  width: 100%; padding: 8px 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: var(--text);
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  outline: none; transition: border-color 0.15s, background 0.15s;
+}
+input[type=text]:focus { border-color: var(--accent-mid); background: #fff; }
+
+/* ── RICH TEXT EDITOR ── */
+.editor-wrap {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  overflow: hidden; background: #fff;
+  display: flex; flex-direction: column;
+  margin-bottom: 0.75rem;
+}
+
+/* TOOLBAR */
+.rte-toolbar {
+  background: var(--toolbar-bg);
+  border-bottom: 1px solid var(--toolbar-border);
+  padding: 4px 6px;
+  display: flex; flex-wrap: wrap; gap: 1px; align-items: center;
+}
+
+.tb-group {
+  display: flex; align-items: center; gap: 1px;
+  padding: 0 3px;
+  border-right: 1px solid var(--toolbar-border);
+}
+.tb-group:last-child { border-right: none; }
+
+.tb-btn {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 24px; padding: 0 4px;
+  font-size: 12px; font-family: 'DM Sans', sans-serif;
+  background: transparent; border: 1px solid transparent;
+  border-radius: 3px; cursor: pointer; color: var(--text);
+  transition: background 0.1s, border-color 0.1s;
+  white-space: nowrap;
+}
+.tb-btn:hover  { background: rgba(0,0,0,0.07); border-color: var(--border); }
+.tb-btn.active { background: #d0ccc4; border-color: var(--border); }
+.tb-btn svg { width: 13px; height: 13px; fill: currentColor; flex-shrink: 0; }
+
+select.tb-select {
+  height: 24px; padding: 0 4px; font-size: 12px;
+  font-family: 'DM Sans', sans-serif; border: 1px solid var(--border);
+  border-radius: 3px; background: #fff; color: var(--text); cursor: pointer; outline: none;
+}
+select.tb-select:focus { border-color: var(--accent-mid); }
+
+.tb-color-wrap { position: relative; display: flex; align-items: center; }
+.tb-color-btn {
+  width: 26px; height: 24px; border-radius: 3px; border: 1px solid var(--border);
+  cursor: pointer; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 2px; background: transparent; padding: 3px;
+}
+.tb-color-btn:hover { background: rgba(0,0,0,0.07); }
+.tb-color-btn .icon { font-size: 11px; line-height: 1; }
+.tb-color-btn .bar  { width: 14px; height: 3px; border-radius: 2px; }
+
+/* ── EDITABLE AREA ── */
+.rte-body {
+  min-height: 140px; max-height: 300px; overflow-y: auto;
+  padding: 10px 12px; outline: none;
+  font-size: 14px; line-height: 1.7; color: var(--text);
+  font-family: 'Times New Roman', Times, serif;
+}
+.rte-body:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-tertiary); pointer-events: none;
+}
+/* card body same rich styles */
+.card-body { font-size: 13.5px; line-height: 1.7; color: var(--text-secondary); }
+.card-body.collapsed {
+  display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.draft-hint {
+  font-size: 11px; font-family: 'DM Mono', monospace;
+  min-height: 14px; margin-bottom: 8px; color: var(--text-tertiary); transition: color 0.2s;
+}
+.draft-hint.ready { color: var(--accent-mid); }
+.draft-hint.saved { color: var(--success); }
+
+.tag-label { font-size: 10px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; display: block; }
+.tag-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.tag-chip {
+  font-size: 11.5px; padding: 3px 10px; border-radius: 99px;
+  border: 1px solid var(--border); color: var(--text-secondary);
+  background: var(--bg); cursor: pointer; user-select: none; transition: all 0.12s;
+}
+.tag-chip:hover { border-color: var(--accent-mid); color: var(--accent); }
+.tag-chip.selected { background: var(--accent-light); border-color: var(--accent-mid); color: var(--accent); font-weight: 500; }
+.custom-tag-row { display: flex; gap: 5px; }
+.custom-tag-row input { flex: 1; font-size: 12.5px; }
+.btn-add-tag {
+  padding: 7px 12px; font-size: 12px; font-family: 'DM Sans', sans-serif;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary);
+  border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; transition: all 0.12s;
+}
+.btn-add-tag:hover { border-color: var(--accent-mid); color: var(--accent); background: var(--accent-light); }
+
+.divider { border: none; border-top: 1px solid var(--border-light); margin: 1rem 0; }
+.btn-clear {
+  width: 100%; padding: 8px; font-size: 12.5px; font-family: 'DM Sans', sans-serif;
+  background: none; color: var(--text-tertiary); border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm); cursor: pointer; transition: all 0.12s;
+}
+.btn-clear:hover { border-color: var(--border); color: var(--text-secondary); }
+
+/* ── MAIN ── */
+.main { padding: 1.75rem 2rem; }
+.main-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 8px; }
+.search-row { display: flex; gap: 8px; align-items: center; flex: 1; max-width: 520px; }
+.search-row input { flex: 1; }
+.filter-select {
+  font-size: 13px; padding: 7px 10px; font-family: 'DM Sans', sans-serif;
+  color: var(--text); background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); cursor: pointer; outline: none;
+}
+.count { font-size: 12px; color: var(--text-tertiary); font-family: 'DM Mono', monospace; white-space: nowrap; }
+
+/* ── CARDS ── */
+.entries-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.entry-card {
+  background: var(--surface); border: 1px solid var(--border-light);
+  border-radius: var(--radius); padding: 1.1rem 1.25rem;
+  display: flex; flex-direction: column; gap: 7px;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  animation: fadeUp 0.2s ease both;
+}
+.entry-card:hover { border-color: var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+@keyframes fadeUp { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.card-title {
+  font-family: 'Lora', serif; font-size: 14.5px; font-weight: 500;
+  color: var(--text); line-height: 1.4; flex: 1;
+}
+.card-remove {
+  font-size: 11px; color: var(--text-tertiary); background: none; border: none;
+  cursor: pointer; padding: 2px 4px; border-radius: 4px; flex-shrink: 0;
+  font-family: 'DM Mono', monospace; transition: color 0.12s;
+}
+.card-remove:hover { color: var(--danger); }
+.card-meta { font-size: 11px; color: var(--text-tertiary); font-family: 'DM Mono', monospace; }
+.toggle-btn {
+  font-size: 11px; color: var(--accent-mid); background: none; border: none;
+  cursor: pointer; padding: 0; font-family: 'DM Sans', sans-serif;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.card-tag {
+  font-size: 11px; padding: 2px 8px; border-radius: 99px;
+  border: 1px solid var(--border-light); color: var(--text-tertiary);
+  background: var(--bg); font-family: 'DM Mono', monospace;
+}
+
+/* inline-editable on cards */
+[contenteditable=true] { outline: none; border-radius: 3px; padding: 1px 3px; margin: -1px -3px; cursor: text; transition: background 0.12s; }
+[contenteditable=true]:hover { background: rgba(0,0,0,0.03); }
+[contenteditable=true]:focus { background: var(--accent-light); box-shadow: 0 0 0 1.5px var(--accent-mid); }
+/* override for rte-body */
+.rte-body[contenteditable]:hover, .rte-body[contenteditable]:focus { background: #fff; box-shadow: none; padding: 10px 12px; margin: 0; }
+/* card body focused */
+.card-body[contenteditable]:focus { background: #fafaf8; box-shadow: 0 0 0 2px var(--accent-mid); border-radius: 4px; padding: 4px 6px; margin: -4px -6px; }
+
+/* ── FLOATING CARD TOOLBAR ── */
+.entry-card { position: relative; }
+#card-toolbar {
+  display: none;
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  z-index: 300;
+  background: var(--toolbar-bg);
+  border: 1px solid var(--toolbar-border);
+  border-bottom: 1px solid var(--toolbar-border);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 3px 4px;
+  flex-wrap: wrap;
+  gap: 1px;
+  align-items: center;
+}
+#card-toolbar.visible { display: flex; }
+
+.empty-state { grid-column: 1/-1; text-align: center; padding: 4rem 2rem; color: var(--text-tertiary); }
+.empty-state p { font-family: 'Lora', serif; font-size: 15px; font-style: italic; margin-bottom: 6px; color: var(--text-secondary); }
+.empty-state small { font-size: 12px; font-family: 'DM Mono', monospace; }
+
+@media (max-width: 760px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; }
+  .main { padding: 1.25rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">Corpus <span>knowledge base</span></div>
+  <div class="topbar-right">
+    <div class="topbar-stats" id="topbar-stats">0 entries</div>
+    <div class="save-dot" id="save-dot"></div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <div class="sidebar-title">New entry</div>
+
+      <div class="form-group">
+        <label class="form-label">Title</label>
+        <input type="text" id="f-title" placeholder="e.g. Sapir-Whorf hypothesis" oninput="draftChanged()" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <div class="editor-wrap">
+          <!-- TOOLBAR -->
+          <div class="rte-toolbar" id="rte-toolbar">
+
+            <!-- Font family -->
+            <div class="tb-group">
+              <select class="tb-select" id="sel-font" onchange="applyFont(this.value)" style="width:108px;" title="Font family">
+                <option value="'Times New Roman',Times,serif">Times New Roman</option>
+                <option value="'Lora',serif">Lora</option>
+                <option value="'Playfair Display',serif">Playfair Display</option>
+                <option value="'Merriweather',serif">Merriweather</option>
+                <option value="'Crimson Text',serif">Crimson Text</option>
+                <option value="'Dancing Script',cursive">Dancing Script</option>
+                <option value="'DM Sans',sans-serif">DM Sans</option>
+                <option value="'Georgia',serif">Georgia</option>
+                <option value="'Arial',sans-serif">Arial</option>
+                <option value="'DM Mono',monospace">Mono</option>
+              </select>
+            </div>
+
+            <!-- Font size -->
+            <div class="tb-group">
+              <select class="tb-select" id="sel-size" onchange="applySize(this.value)" style="width:54px;" title="Font size">
+                <option value="1">8</option>
+                <option value="2">10</option>
+                <option value="3" selected>12</option>
+                <option value="4">14</option>
+                <option value="5">18</option>
+                <option value="6">24</option>
+                <option value="7">36</option>
+              </select>
+            </div>
+
+            <!-- B I U S -->
+            <div class="tb-group">
+              <button class="tb-btn" id="btn-bold"   onclick="fmt('bold')"          title="Bold (Ctrl+B)"><b>B</b></button>
+              <button class="tb-btn" id="btn-italic" onclick="fmt('italic')"        title="Italic (Ctrl+I)"><i>I</i></button>
+              <button class="tb-btn" id="btn-under"  onclick="fmt('underline')"     title="Underline (Ctrl+U)"><u>U</u></button>
+              <button class="tb-btn" id="btn-strike" onclick="fmt('strikeThrough')" title="Strikethrough"><s>S</s></button>
+            </div>
+
+            <!-- Script / style -->
+            <div class="tb-group">
+              <button class="tb-btn" onclick="fmt('superscript')"    title="Superscript">x²</button>
+              <button class="tb-btn" onclick="fmt('subscript')"      title="Subscript">x₂</button>
+            </div>
+
+            <!-- Colours -->
+            <div class="tb-group">
+              <div class="tb-color-wrap" title="Text colour">
+                <label class="tb-color-btn" title="Text colour">
+                  <span class="icon">A</span>
+                  <span class="bar" id="txt-color-bar" style="background:#1a1916"></span>
+                  <input type="color" value="#1a1916" style="position:absolute;opacity:0;width:0;height:0;"
+                         oninput="applyColor('foreColor',this.value); document.getElementById('txt-color-bar').style.background=this.value" />
+                </label>
+              </div>
+              <div class="tb-color-wrap" title="Highlight colour">
+                <label class="tb-color-btn" title="Highlight">
+                  <span class="icon">🖊</span>
+                  <span class="bar" id="hl-color-bar" style="background:#fff176"></span>
+                  <input type="color" value="#fff176" style="position:absolute;opacity:0;width:0;height:0;"
+                         oninput="applyColor('hiliteColor',this.value); document.getElementById('hl-color-bar').style.background=this.value" />
+                </label>
+              </div>
+            </div>
+
+            <!-- Alignment -->
+            <div class="tb-group">
+              <button class="tb-btn" onclick="fmt('justifyLeft')"   title="Align left">
+                <svg viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="2"/><rect x="1" y="6" width="9" height="2"/><rect x="1" y="10" width="12" height="2"/><rect x="1" y="14" width="7" height="2"/></svg>
+              </button>
+              <button class="tb-btn" onclick="fmt('justifyCenter')" title="Centre">
+                <svg viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="2"/><rect x="3.5" y="6" width="9" height="2"/><rect x="2" y="10" width="12" height="2"/><rect x="4.5" y="14" width="7" height="2"/></svg>
+              </button>
+              <button class="tb-btn" onclick="fmt('justifyRight')"  title="Align right">
+                <svg viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="2"/><rect x="6" y="6" width="9" height="2"/><rect x="3" y="10" width="12" height="2"/><rect x="8" y="14" width="7" height="2"/></svg>
+              </button>
+              <button class="tb-btn" onclick="fmt('justifyFull')"   title="Justify">
+                <svg viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="2"/><rect x="1" y="6" width="14" height="2"/><rect x="1" y="10" width="14" height="2"/><rect x="1" y="14" width="14" height="2"/></svg>
+              </button>
+            </div>
+
+            <!-- Lists & indent -->
+            <div class="tb-group">
+              <button class="tb-btn" onclick="fmt('insertUnorderedList')" title="Bullet list">
+                <svg viewBox="0 0 16 16"><circle cx="2" cy="4" r="1.5"/><rect x="5" y="3" width="10" height="2"/><circle cx="2" cy="9" r="1.5"/><rect x="5" y="8" width="10" height="2"/><circle cx="2" cy="14" r="1.5"/><rect x="5" y="13" width="10" height="2"/></svg>
+              </button>
+              <button class="tb-btn" onclick="fmt('insertOrderedList')" title="Numbered list">
+                <svg viewBox="0 0 16 16"><text x="0" y="5" font-size="5">1.</text><rect x="5" y="3" width="10" height="2"/><text x="0" y="10" font-size="5">2.</text><rect x="5" y="8" width="10" height="2"/><text x="0" y="15" font-size="5">3.</text><rect x="5" y="13" width="10" height="2"/></svg>
+              </button>
+              <button class="tb-btn" onclick="fmt('indent')"  title="Increase indent">→</button>
+              <button class="tb-btn" onclick="fmt('outdent')" title="Decrease indent">←</button>
+            </div>
+
+            <!-- Clear -->
+            <div class="tb-group">
+              <button class="tb-btn" onclick="fmt('removeFormat')" title="Clear formatting">✕</button>
+            </div>
+
+          </div><!-- end toolbar -->
+
+          <!-- EDITABLE AREA -->
+          <div id="f-body"
+               class="rte-body"
+               contenteditable="true"
+               data-placeholder="Definitions, examples, analysis, citations…"
+               oninput="draftChanged()"
+               onkeyup="syncToolbarState()"
+               onmouseup="syncToolbarState()"
+          ></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Source (optional)</label>
+        <input type="text" id="f-source" placeholder="e.g. Lakoff (1987)" oninput="draftChanged()" />
+      </div>
+
+      <div class="draft-hint" id="draft-hint"></div>
+
+      <span class="tag-label">Tags</span>
+      <div class="tag-grid" id="tag-selector"></div>
+      <div class="custom-tag-row">
+        <input type="text" id="custom-tag" placeholder="New tag…" onkeydown="if(event.key==='Enter')addCustomTag()" />
+        <button class="btn-add-tag" onclick="addCustomTag()">+ Add</button>
+      </div>
+
+      <hr class="divider" />
+      <button class="btn-clear" onclick="clearForm()">clear form</button>
+    </div>
+  </aside>
+
+
+<!-- FLOATING CARD TOOLBAR (moves into whichever card is being edited) -->
+<div id="card-toolbar">
+  <div class="tb-group">
+    <select class="tb-select" id="ct-font" onchange="cardFmt('fontName', this.value)" style="width:108px;">
+      <option value="'Times New Roman',Times,serif">Times New Roman</option>
+      <option value="'Lora',serif">Lora</option>
+      <option value="'Playfair Display',serif">Playfair Display</option>
+      <option value="'Merriweather',serif">Merriweather</option>
+      <option value="'Crimson Text',serif">Crimson Text</option>
+      <option value="'Dancing Script',cursive">Dancing Script</option>
+      <option value="'DM Sans',sans-serif">DM Sans</option>
+      <option value="'Georgia',serif">Georgia</option>
+      <option value="'Arial',sans-serif">Arial</option>
+      <option value="'DM Mono',monospace">Mono</option>
+    </select>
+  </div>
+  <div class="tb-group">
+    <select class="tb-select" id="ct-size" onchange="cardFmt('fontSize', this.value)" style="width:54px;">
+      <option value="1">8</option>
+      <option value="2">10</option>
+      <option value="3" selected>12</option>
+      <option value="4">14</option>
+      <option value="5">18</option>
+      <option value="6">24</option>
+      <option value="7">36</option>
+    </select>
+  </div>
+  <div class="tb-group">
+    <button class="tb-btn" id="ct-bold"   onmousedown="e=>{e.preventDefault()}" onclick="cardFmt('bold')"          title="Bold"><b>B</b></button>
+    <button class="tb-btn" id="ct-italic" onclick="cardFmt('italic')"        title="Italic"><i>I</i></button>
+    <button class="tb-btn" id="ct-under"  onclick="cardFmt('underline')"     title="Underline"><u>U</u></button>
+    <button class="tb-btn" id="ct-strike" onclick="cardFmt('strikeThrough')" title="Strikethrough"><s>S</s></button>
+  </div>
+  <div class="tb-group">
+    <button class="tb-btn" onclick="cardFmt('superscript')" title="Superscript">x²</button>
+    <button class="tb-btn" onclick="cardFmt('subscript')"   title="Subscript">x₂</button>
+  </div>
+  <div class="tb-group">
+    <div class="tb-color-wrap">
+      <label class="tb-color-btn" title="Text colour">
+        <span class="icon">A</span>
+        <span class="bar" id="ct-txt-bar" style="background:#1a1916"></span>
+        <input type="color" value="#1a1916" style="position:absolute;opacity:0;width:0;height:0;"
+               oninput="cardFmt('foreColor',this.value); document.getElementById('ct-txt-bar').style.background=this.value" />
+      </label>
+    </div>
+    <div class="tb-color-wrap">
+      <label class="tb-color-btn" title="Highlight">
+        <span class="icon">🖊</span>
+        <span class="bar" id="ct-hl-bar" style="background:#fff176"></span>
+        <input type="color" value="#fff176" style="position:absolute;opacity:0;width:0;height:0;"
+               oninput="cardFmt('hiliteColor',this.value); document.getElementById('ct-hl-bar').style.background=this.value" />
+      </label>
+    </div>
+  </div>
+  <div class="tb-group">
+    <button class="tb-btn" onclick="cardFmt('justifyLeft')"   title="Left">
+      <svg viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="2"/><rect x="1" y="6" width="9" height="2"/><rect x="1" y="10" width="12" height="2"/><rect x="1" y="14" width="7" height="2"/></svg>
+    </button>
+    <button class="tb-btn" onclick="cardFmt('justifyCenter')" title="Centre">
+      <svg viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="2"/><rect x="3" y="6" width="9" height="2"/><rect x="2" y="10" width="12" height="2"/><rect x="4" y="14" width="7" height="2"/></svg>
+    </button>
+    <button class="tb-btn" onclick="cardFmt('justifyRight')"  title="Right">
+      <svg viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="2"/><rect x="6" y="6" width="9" height="2"/><rect x="3" y="10" width="12" height="2"/><rect x="8" y="14" width="7" height="2"/></svg>
+    </button>
+  </div>
+  <div class="tb-group">
+    <button class="tb-btn" onclick="cardFmt('insertUnorderedList')" title="Bullets">
+      <svg viewBox="0 0 16 16"><circle cx="2" cy="4" r="1.5"/><rect x="5" y="3" width="10" height="2"/><circle cx="2" cy="9" r="1.5"/><rect x="5" y="8" width="10" height="2"/><circle cx="2" cy="14" r="1.5"/><rect x="5" y="13" width="10" height="2"/></svg>
+    </button>
+    <button class="tb-btn" onclick="cardFmt('insertOrderedList')" title="Numbers">
+      <svg viewBox="0 0 16 16"><text x="0" y="5" font-size="5">1.</text><rect x="5" y="3" width="10" height="2"/><text x="0" y="10" font-size="5">2.</text><rect x="5" y="8" width="10" height="2"/><text x="0" y="15" font-size="5">3.</text><rect x="5" y="13" width="10" height="2"/></svg>
+    </button>
+    <button class="tb-btn" onclick="cardFmt('indent')"  title="Indent">→</button>
+    <button class="tb-btn" onclick="cardFmt('outdent')" title="Outdent">←</button>
+  </div>
+  <div class="tb-group">
+    <button class="tb-btn" onclick="cardFmt('removeFormat')" title="Clear">✕</button>
+  </div>
+</div>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="main-header">
+      <div class="search-row">
+        <input type="text" id="search" placeholder="Search entries…" oninput="render()" />
+        <select class="filter-select" id="filter-tag" onchange="render()">
+          <option value="">All tags</option>
+        </select>
+      </div>
+      <div class="count" id="count-badge"></div>
+    </div>
+    <div class="entries-grid" id="entries-list"></div>
+  </main>
+</div>
+
+<script>
+const STORE_KEY = 'corpus_entries_v1';
+const TAGS_KEY  = 'corpus_tags_v1';
+
+let entries  = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+let allTags  = JSON.parse(localStorage.getItem(TAGS_KEY)  || '["concept","theory","methodology","history","debate","terminology","evidence","application","critique","overview"]');
+let expanded = {};
+let draftTimer = null;
+let cardTimers = {};
+let pendingDraftId = null;
+
+// ── PERSIST ──────────────────────────────────────────────
+function persist() {
+  localStorage.setItem(STORE_KEY, JSON.stringify(entries));
+  localStorage.setItem(TAGS_KEY,  JSON.stringify(allTags));
+  pulseDot();
+}
+function pulseDot() {
+  const d = document.getElementById('save-dot');
+  d.className = 'save-dot saving';
+  clearTimeout(d._t1); clearTimeout(d._t2);
+  d._t1 = setTimeout(() => d.className = 'save-dot saved', 500);
+  d._t2 = setTimeout(() => d.className = 'save-dot', 2200);
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── SIDEBAR TOOLBAR ─────────────────────────────────────
+// Sidebar toolbar always targets f-body. Prevent mousedown losing focus.
+document.getElementById('rte-toolbar').addEventListener('mousedown', e => e.preventDefault());
+
+function fmt(cmd) {
+  document.getElementById('f-body').focus();
+  document.execCommand(cmd, false, null);
+  syncSidebarState();
+  draftChanged();
+}
+function applyFont(val) {
+  document.getElementById('f-body').focus();
+  document.execCommand('fontName', false, val);
+  draftChanged();
+}
+function applySize(val) {
+  document.getElementById('f-body').focus();
+  document.execCommand('fontSize', false, val);
+  draftChanged();
+}
+function applyColor(cmd, val) {
+  document.getElementById('f-body').focus();
+  document.execCommand(cmd, false, val);
+  draftChanged();
+}
+function syncSidebarState() {
+  [['btn-bold','bold'],['btn-italic','italic'],['btn-under','underline'],['btn-strike','strikeThrough']]
+    .forEach(([id,cmd]) => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('active', document.queryCommandState(cmd));
+    });
+}
+
+// ── CARD FLOATING TOOLBAR ────────────────────────────────
+// One shared toolbar element that moves into whichever card body is focused.
+const cardToolbar = document.getElementById('card-toolbar');
+let activeCardId  = null;
+let savedCardSel  = null;
+
+// Prevent toolbar mousedown from blurring the card body
+cardToolbar.addEventListener('mousedown', e => e.preventDefault());
+
+function showCardToolbar(cardEl) {
+  cardEl.insertBefore(cardToolbar, cardEl.firstChild);
+  cardToolbar.classList.add('visible');
+  // add top-padding to card so toolbar doesn't overlap content
+  cardEl.style.paddingTop = (cardToolbar.offsetHeight + 6) + 'px';
+}
+
+function hideCardToolbar() {
+  if (cardToolbar.parentElement && cardToolbar.parentElement !== document.body) {
+    const card = cardToolbar.parentElement;
+    card.style.paddingTop = '';
+  }
+  document.body.appendChild(cardToolbar); // park it off-screen in body
+  cardToolbar.classList.remove('visible');
+  activeCardId = null;
+  savedCardSel = null;
+}
+
+// Save selection on every selectionchange so toolbar buttons have it
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return;
+  const anchor = sel.anchorNode;
+  const parent = anchor ? (anchor.nodeType === 1 ? anchor : anchor.parentElement) : null;
+  if (parent && parent.isContentEditable) {
+    savedCardSel = sel.getRangeAt(0).cloneRange();
+  }
+});
+
+function restoreCardSel() {
+  if (!savedCardSel) return;
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(savedCardSel);
+}
+
+// Show toolbar when a card body is focused
+document.addEventListener('focusin', e => {
+  const bodyEl = e.target.closest('[data-field="body"]');
+  if (bodyEl && bodyEl.dataset.id) {
+    const id      = Number(bodyEl.dataset.id);
+    const cardEl  = bodyEl.closest('.entry-card');
+    activeCardId  = id;
+    showCardToolbar(cardEl);
+    syncCardState();
+  } else if (!cardToolbar.contains(e.target) && !e.target.closest('.entry-card')) {
+    hideCardToolbar();
+  }
+});
+
+// Hide toolbar when clicking away from both card and toolbar
+document.addEventListener('focusin', e => {
+  // already handled above; catch clicks on non-card, non-toolbar elements
+  if (!e.target.closest('.entry-card') && !cardToolbar.contains(e.target)) {
+    hideCardToolbar();
+  }
+}, true);
+
+function cardFmt(cmd, val) {
+  restoreCardSel();
+  document.execCommand(cmd, false, val || null);
+  syncCardState();
+  if (activeCardId) cardInput(activeCardId);
+}
+
+function syncCardState() {
+  [['ct-bold','bold'],['ct-italic','italic'],['ct-under','underline'],['ct-strike','strikeThrough']]
+    .forEach(([id,cmd]) => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('active', document.queryCommandState(cmd));
+    });
+}
+
+function syncToolbarState() { syncSidebarState(); syncCardState(); }
+
+// ── DRAFT ────────────────────────────────────────────────
+function draftChanged() {
+  updateHint();
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(commitOrSaveDraft, 900);
+}
+
+function getBodyHTML()  { return document.getElementById('f-body').innerHTML.trim(); }
+function getBodyText()  { return document.getElementById('f-body').innerText.trim(); }
+
+function commitOrSaveDraft() {
+  const title  = document.getElementById('f-title').value.trim();
+  const body   = getBodyHTML();
+  const bodyTx = getBodyText();
+  const source = document.getElementById('f-source').value.trim();
+  const tags   = [...document.querySelectorAll('#tag-selector .tag-chip.selected')].map(t => t.textContent);
+
+  if (!title && !bodyTx) {
+    if (pendingDraftId) {
+      entries = entries.filter(e => e.id !== pendingDraftId);
+      pendingDraftId = null; persist(); render();
+    }
+    return;
+  }
+
+  if (title && bodyTx) {
+    if (pendingDraftId) {
+      const e = entries.find(x => x.id === pendingDraftId);
+      if (e) { e.title = title; e.body = body; e.source = source; e.tags = tags; }
+    } else {
+      pendingDraftId = Date.now();
+      entries.unshift({ id: pendingDraftId, title, body, source, tags,
+        date: new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) });
+    }
+    persist(); render(); updateHint('saved');
+  } else {
+    if (pendingDraftId) {
+      const e = entries.find(x => x.id === pendingDraftId);
+      if (e) { e.title = title || '(untitled)'; e.body = body; e.source = source; e.tags = tags; persist(); }
+    }
+  }
+}
+
+function updateHint(state) {
+  const el    = document.getElementById('draft-hint');
+  const title = document.getElementById('f-title').value.trim();
+  const body  = getBodyText();
+  if (state === 'saved') { el.textContent = '✓ autosaved'; el.className = 'draft-hint saved'; return; }
+  if (!title && !body)   { el.textContent = ''; el.className = 'draft-hint'; return; }
+  if (title && body)     { el.textContent = 'saving…'; el.className = 'draft-hint ready'; return; }
+  el.textContent = title ? 'add notes to autosave' : 'add title to autosave';
+  el.className = 'draft-hint';
+}
+
+function clearForm() {
+  if (pendingDraftId && !getBodyText()) {
+    entries = entries.filter(x => x.id !== pendingDraftId); persist(); render();
+  }
+  pendingDraftId = null;
+  document.getElementById('f-title').value    = '';
+  document.getElementById('f-body').innerHTML = '';
+  document.getElementById('f-source').value   = '';
+  document.querySelectorAll('#tag-selector .tag-chip').forEach(t => t.classList.remove('selected'));
+  updateHint();
+}
+
+// ── TAGS ─────────────────────────────────────────────────
+function renderTagSelector() {
+  document.getElementById('tag-selector').innerHTML =
+    allTags.map(t => `<span class="tag-chip" onclick="toggleTag(this)">${esc(t)}</span>`).join('');
+}
+function toggleTag(el) { el.classList.toggle('selected'); draftChanged(); }
+function addCustomTag() {
+  const inp = document.getElementById('custom-tag');
+  const val = inp.value.trim().toLowerCase();
+  if (!val || allTags.includes(val)) { inp.value = ''; return; }
+  allTags.push(val); persist(); renderTagSelector(); inp.value = '';
+}
+
+// ── CARD EDITING ─────────────────────────────────────────
+function cardInput(id) {
+  pulseDot();
+  clearTimeout(cardTimers[id]);
+  cardTimers[id] = setTimeout(() => {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    const titleEl  = document.querySelector(`[data-id="${id}"][data-field="title"]`);
+    const bodyEl   = document.querySelector(`[data-id="${id}"][data-field="body"]`);
+    const sourceEl = document.querySelector(`[data-id="${id}"][data-field="source"]`);
+    if (titleEl && titleEl.innerText.trim()) e.title = titleEl.innerText.trim();
+    if (bodyEl)   e.body   = bodyEl.innerHTML;
+    if (sourceEl) e.source = sourceEl.innerText.trim();
+    persist();
+  }, 600);
+}
+
+// ── DELETE / EXPAND ───────────────────────────────────────
+function deleteEntry(id) {
+  if (!confirm('Remove this entry?')) return;
+  if (id === pendingDraftId) { pendingDraftId = null; clearForm(); }
+  entries = entries.filter(e => e.id !== id);
+  persist(); render();
+}
+
+function toggleExpand(id) {
+  expanded[id] = !expanded[id];
+  const bodyEl = document.querySelector(`[data-id="${id}"][data-field="body"]`);
+  const btn    = document.querySelector(`[data-toggle="${id}"]`);
+  if (bodyEl) bodyEl.classList.toggle('collapsed', !expanded[id]);
+  if (btn)    btn.textContent = expanded[id] ? 'show less ↑' : 'show more ↓';
+}
+
+// ── RENDER ───────────────────────────────────────────────
+function isLongHTML(html) {
+  const d = document.createElement('div'); d.innerHTML = html || '';
+  return (d.textContent || '').length > 300;
+}
+
+function render() {
+  const q   = document.getElementById('search').value.toLowerCase();
+  const tag = document.getElementById('filter-tag').value;
+
+  const uniqueTags = [...new Set(entries.flatMap(e => e.tags))].sort();
+  const sel = document.getElementById('filter-tag');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All tags</option>' +
+    uniqueTags.map(t => `<option value="${t}" ${t===cur?'selected':''}>${t}</option>`).join('');
+
+  const filtered = entries.filter(e => {
+    const bodyText = e.body ? (new DOMParser().parseFromString(e.body,'text/html').body.textContent||'') : '';
+    const mq = !q || e.title.toLowerCase().includes(q) || bodyText.toLowerCase().includes(q) || (e.source||'').toLowerCase().includes(q);
+    const mt = !tag || e.tags.includes(tag);
+    return mq && mt;
+  });
+
+  document.getElementById('count-badge').textContent  = filtered.length + ' of ' + entries.length + ' entries';
+  document.getElementById('topbar-stats').textContent = entries.length + ' entr' + (entries.length===1?'y':'ies');
+
+  const list = document.getElementById('entries-list');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state">
+      <p>${entries.length ? 'No entries match.' : 'Your corpus is empty.'}</p>
+      <small>${entries.length ? 'Try a different search or tag.' : 'Start typing on the left — saves automatically.'}</small>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(e => {
+    const isExp = !!expanded[e.id];
+    const long  = isLongHTML(e.body);
+    return `<div class="entry-card">
+      <div class="card-header">
+        <div class="card-title"
+             contenteditable="true" data-id="${e.id}" data-field="title"
+             oninput="cardInput(${e.id})"
+             onkeydown="if(event.key==='Enter')event.preventDefault();"
+        >${esc(e.title)}</div>
+        <button class="card-remove" onclick="deleteEntry(${e.id})">remove</button>
+      </div>
+      <div class="card-meta">
+        ${e.date}${e.source
+          ? ` · <span contenteditable="true" data-id="${e.id}" data-field="source" oninput="cardInput(${e.id})">${esc(e.source)}</span>`
+          : ` · <span contenteditable="true" data-id="${e.id}" data-field="source" oninput="cardInput(${e.id})" style="font-style:italic;color:var(--text-tertiary)">source…</span>`}
+      </div>
+      <div class="card-body ${long && !isExp ? 'collapsed' : ''}"
+           contenteditable="true" data-id="${e.id}" data-field="body"
+           oninput="cardInput(${e.id})"
+      >${e.body || ''}</div>
+      ${long ? `<button class="toggle-btn" data-toggle="${e.id}" onclick="toggleExpand(${e.id})">${isExp?'show less ↑':'show more ↓'}</button>` : ''}
+      ${e.tags.length ? `<div class="card-tags">${e.tags.map(t=>`<span class="card-tag">${esc(t)}</span>`).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+renderTagSelector();
+render();
+
+// Keep toolbar states in sync when cursor moves in card fields
+document.addEventListener('keyup',   syncToolbarState);
+document.addEventListener('mouseup', syncToolbarState);</script>
+</body>
+</html>
